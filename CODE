@@ -1,0 +1,117 @@
+//LCD - port D va port E
+//nut nhan RB0 - start/stop, RB1 - up/down
+
+//CAU TRUC CHUONG TRINH C
+
+//KHAI BAO THU VIEN
+#INCLUDE <TV_16F887.C>
+#INCLUDE <TV_LCD.C>
+//KHAI BAO UART
+//DINH NGHIA NUT NHAN
+#DEFINE SS PIN_B0
+#DEFINE UD PIN_B1
+//KHAI BAO BIEN
+SIGNED DEM; // (-128...127)
+UNSIGNED INT8 DV,CH;
+UNSIGNED INT1 TT_SS,TT_UD; //DO CHI CO 2 TRANG THAI DEM NEN DUNG INT1
+//VIET HAM NGAN
+//VIET HAM CON
+VOID GM_LCD()
+{
+   DV = DEM%10 + 0X30; //0X30 LA SO 0 TRONG MA ASCII
+   CH = DEM/10%10 + 0X30;
+   //XOA SO 0 VO NGHIA
+   IF(CH == 0X30 ) CH=0X20; //0X20 LA KHOANG TRANG
+}
+VOID HT_LCD()
+{  
+   //2 BUOC HIEN THI- XAC DINH VI TRI, GUI DU LIEU
+   LCD_COMMAND(0X80);//DAU HANG 1
+   LCD_DATA("UP/DOWN COUNTER");
+   
+   LCD_COMMAND(0XC0 + 7); //GIUA HANG 2 - (16-2)/2=7
+   LCD_DATA(CH); // HIEN THI TU TRAI SANG PHAI
+   LCD_DATA(DV);
+}
+VOID CD_SS()
+{
+   IF(!INPUT(SS))
+   {
+      DELAY_MS(20);
+      IF(!INPUT(SS))
+      {
+         //XU LI CHUC NANG PHIM
+         TT_SS=~TT_SS;
+         //CHO NHA
+         WHILE(!INPUT(SS));
+      }
+   }
+}
+VOID CD_UD()
+{
+   IF(!INPUT(UD))
+   {
+      DELAY_MS(20);
+      IF(!INPUT(UD))
+      {
+         //XU LI CHUC NANG PHIM
+         TT_UD=~TT_UD;
+         //CHO NHA
+         WHILE(!INPUT(UD));
+      }
+   }
+}
+//VIET CHUONG TRINH CHINH
+VOID MAIN()
+{
+   //KHOI TAO CAC PORT
+   SET_TRIS_B(0XFF);
+   SET_TRIS_D(0X00);
+   SET_TRIS_E(0X00);
+   //KHOI TAO CAC MODULE
+   //KHOI TAO LCD
+   LCD_SETUP();
+   //TRANG THAI BAN DAU - KHI CHUA NHAN NUT
+   DEM=0;
+   TT_UD=1;
+   TT_SS=0;
+   //HIEN THI DONG CHU VA SO 0
+   GM_LCD();
+   HT_LCD();
+   //VONG LAP TUAN HOAN
+   WHILE (TRUE)
+   {
+      DO
+      { CD_SS(); }
+      WHILE (TT_SS==0);
+      CD_UD();
+      IF(TT_UD==1)
+      {
+         IF(DEM<79)
+         {
+            DEM++;
+         }
+         ELSE
+         {  
+            DEM=0;
+         }
+         GM_LCD();
+         HT_LCD();
+         DELAY_MS(100);
+      }
+      ELSE
+      {  
+         IF(DEM>0)
+         {
+            DEM--;
+         }
+         ELSE
+         {  
+            DEM=79;
+         }
+         GM_LCD();
+         HT_LCD();
+         DELAY_MS(100);         
+      }
+   }
+}
